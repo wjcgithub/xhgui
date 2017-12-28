@@ -5,15 +5,12 @@
 class Xhgui_Profiles
 {
     protected $_collection;
-
     protected $_mapper;
-
     public function __construct(MongoDb $db)
     {
         $this->_collection = $db->results;
         $this->_mapper = new Xhgui_Db_Mapper();
     }
-
     /**
      * Get the latest profile data.
      *
@@ -27,12 +24,10 @@ class Xhgui_Profiles
         $result = $cursor->getNext();
         return $this->_wrap($result);
     }
-
     public function query($conditions, $fields = null)
     {
         return $this->_collection->find($conditions, $fields);
     }
-
     /**
      * Get a single profile run by id.
      *
@@ -45,7 +40,6 @@ class Xhgui_Profiles
             '_id' => new MongoId($id)
         )));
     }
-
     /**
      * Get the list of profiles for a simplified url.
      *
@@ -65,21 +59,17 @@ class Xhgui_Profiles
         ));
         return $this->paginate($options);
     }
-
     public function paginate($options)
     {
         $opts = $this->_mapper->convert($options);
-
         $totalRows = $this->_collection->find(
             $opts['conditions'],
             array('_id' => 1))->count();
-
         $totalPages = max(ceil($totalRows / $opts['perPage']), 1);
         $page = 1;
         if (isset($options['page'])) {
             $page = min(max($options['page'], 1), $totalPages);
         }
-
         $projection = false;
         if (isset($options['projection'])) {
             if ($options['projection'] === true) {
@@ -88,7 +78,6 @@ class Xhgui_Profiles
                 $projection = $options['projection'];
             }
         }
-
         if ($projection === false) {
             $cursor = $this->_collection->find($opts['conditions'])
                 ->sort($opts['sort'])
@@ -100,7 +89,6 @@ class Xhgui_Profiles
                 ->skip((int)($page - 1) * $opts['perPage'])
                 ->limit($opts['perPage']);
         }
-
         return array(
             'results' => $this->_wrap($cursor),
             'sort' => $opts['sort'],
@@ -110,7 +98,6 @@ class Xhgui_Profiles
             'totalPages' => $totalPages
         );
     }
-
     /**
      * Get the Percentile metrics for a URL
      *
@@ -128,12 +115,10 @@ class Xhgui_Profiles
             'conditions' => $search + array('simple_url' => $url)
         ));
         $match = $result['conditions'];
-
         $col = '$meta.request_date';
         if (!empty($search['limit']) && $search['limit'][0] == "P") {
             $col = '$meta.request_ts';
         }
-
         $results = $this->_collection->aggregate(array(
             array('$match' => $match),
             array(
@@ -170,7 +155,6 @@ class Xhgui_Profiles
             ),
             array('$sort' => array('_id' => 1)),
         ));
-
         if (empty($results['result'])) {
             return array();
         }
@@ -192,7 +176,6 @@ class Xhgui_Profiles
         }
         return $results['result'];
     }
-
     /**
      * Get the Average metrics for a URL
      *
@@ -240,7 +223,6 @@ class Xhgui_Profiles
         }
         return $results['result'];
     }
-
     /**
      * Get a paginated set of results.
      *
@@ -251,7 +233,31 @@ class Xhgui_Profiles
     {
         return $this->paginate($options);
     }
-
+    /**
+     * Encodes a profile to avoid mongodb key errors.
+     * @param array $profile
+     *
+     * @return array
+     */
+    protected function encodeProfile($profile)
+    {
+        if (!is_array($profile)) {
+            return $profile;
+        }
+        $target = array(
+            '__encoded' => true,
+        );
+        foreach ($profile as $k => $v) {
+            if (is_array($v)) {
+                $v = $this->encodeProfile($v);
+            }
+            $replacementKey = strtr($k, array(
+                '.' => '．',
+            ));
+            $target[$replacementKey] = $v;
+        }
+        return $target;
+    }
     /**
      * Insert a profile run.
      *
@@ -261,9 +267,9 @@ class Xhgui_Profiles
      */
     public function insert($profile)
     {
+        $profile['profile'] = $this->encodeProfile($profile['profile']);
         return $this->_collection->insert($profile, array('w' => 0));
     }
-
     /**
      * Used to truncate a collection.
      *
@@ -275,7 +281,6 @@ class Xhgui_Profiles
     {
         return $this->_collection->drop();
     }
-
     /**
      * Converts arrays + MongoCursors into Xhgui_Profile instances.
      *
@@ -287,7 +292,6 @@ class Xhgui_Profiles
         if ($data === null) {
             throw new Exception('No profile data found.');
         }
-
         if (is_array($data)) {
             return new Xhgui_Profile($data);
         }
@@ -296,5 +300,17 @@ class Xhgui_Profiles
             $results[] = new Xhgui_Profile($row);
         }
         return $results;
+    }
+
+    public function groupByDomain()
+    {
+        $pipeline = array(
+            array(
+                '$group' => array(
+                    '_id' => '$meta.SERVER.DOCUMENT_ROOT',
+                )
+            )
+        );
+        return $this->_collection->aggregate($pipeline);
     }
 }

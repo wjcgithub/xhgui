@@ -3,7 +3,7 @@
  * Default configuration for Xhgui
  */
 return array(
-    'debug' => false,
+    'debug' => true,
     'mode' => 'development',
 
     // Can be either mongodb or file.
@@ -39,4 +39,8 @@ return array(
 
     'profiler.options' => array(),
 
+    //custom
+    'ignore_url' => 'local.xhgui.com',
+//    'ignore_url' => 'xhgui.wangjichao.phpers.club',
+    'web_root' => '/www/web/wangjichao/xhgui/webroot'
 );

@@ -25,6 +25,11 @@ $app->get('/', function () use ($di, $app) {
     $app->controller->index();
 })->name('home');
 
+$app->get('/domains', function () use ($di, $app) {
+    $app->controller = $di['runController'];
+    $app->controller->domains();
+})->name('domains');
+
 $app->get('/run/view', function () use ($di, $app) {
     $app->controller = $di['runController'];
     $app->controller->view();

@@ -14,7 +14,7 @@ class Xhgui_Controller_Run extends Xhgui_Controller
         $request = $this->_app->request();
 
         $search = array();
-        $keys = array('date_start', 'date_end', 'url');
+        $keys = array('date_start', 'date_end', 'url', 'document_root');
         foreach ($keys as $key) {
             if ($request->get($key)) {
                 $search[$key] = $request->get($key);
@@ -308,5 +308,27 @@ class Xhgui_Controller_Run extends Xhgui_Controller
 
         $response['Content-Type'] = 'application/json';
         return $response->body(json_encode($callgraph));
+    }
+
+    public function domains()
+    {
+        $result = [];
+        $request = $this->_app->request();
+        $response = $this->_app->response();
+        if (isset($_SESSION['domains']) && rand(1,5)==2){
+            $result = json_decode($_SESSION['domains']);
+        }else{
+            $data = $this->_profiles->groupByDomain();
+            if($data['ok']==1){
+                foreach ($data['result'] as $key=>$value){
+                    $result[] = $value['_id'];
+                }
+            }
+
+            $_SESSION['domains'] = json_encode($result);
+        }
+
+        $response['Content-Type'] = 'application/json';
+        echo $response->body(json_encode($result)); die;
     }
 }

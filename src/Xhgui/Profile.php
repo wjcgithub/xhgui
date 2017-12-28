@@ -10,16 +10,13 @@ class Xhgui_Profile
      * @const Key used for methods with no parent
      */
     const NO_PARENT = '__xhgui_top__';
-
     protected $_data;
     protected $_collapsed;
     protected $_indexed;
     protected $_visited;
-
     protected $_keys = array('ct', 'wt', 'cpu', 'mu', 'pmu');
     protected $_exclusiveKeys = array('ewt', 'ecpu', 'emu', 'epmu');
     protected $_functionCount;
-
     public function __construct($profile, $convert = true)
     {
         $this->_data = $profile;
@@ -27,7 +24,33 @@ class Xhgui_Profile
             $this->_process();
         }
     }
-
+    /**
+     * Decodes the profile array by removing unicode replacements.
+     *
+     * @param array $profile
+     *
+     * @return array
+     */
+    protected function decode($profile)
+    {
+        if (!is_array($profile) || !isset($profile['__encoded'])) {
+            return $profile;
+        }
+        $target = array();
+        foreach ($profile as $k => $v) {
+            if ($k === '__encoded') {
+                continue;
+            }
+            if (is_array($v)) {
+                $v = $this->decode($v);
+            }
+            $replacementKey = strtr($k, array(
+                '．' => '.',
+            ));
+            $target[$replacementKey] = $v;
+        }
+        return $target;
+    }
     /**
      * Convert the raw data into a flatter list that is easier to use.
      *
@@ -39,10 +62,10 @@ class Xhgui_Profile
      */
     protected function _process()
     {
+        $this->_data['profile'] = $this->decode($this->_data['profile']);
         $result = array();
         foreach ($this->_data['profile'] as $name => $values) {
             list($parent, $func) = $this->splitName($name);
-
             // Generate collapsed data.
             if (isset($result[$func])) {
                 $result[$func] = $this->_sumKeys($result[$func], $values);
@@ -51,7 +74,6 @@ class Xhgui_Profile
                 $result[$func] = $values;
                 $result[$func]['parents'] = array($parent);
             }
-
             // Build the indexed data.
             if ($parent === null) {
                 $parent = self::NO_PARENT;
@@ -63,7 +85,6 @@ class Xhgui_Profile
         }
         $this->_collapsed = $result;
     }
-
     /**
      * Sum up the values in $this->_keys;
      *
@@ -81,7 +102,6 @@ class Xhgui_Profile
         }
         return $a;
     }
-
     protected function _diffKeys($a, $b, $includeSelf = true)
     {
         $keys = $this->_keys;
@@ -93,7 +113,6 @@ class Xhgui_Profile
         }
         return $a;
     }
-
     protected function _diffPercentKeys($a, $b, $includeSelf = true)
     {
         $out = array();
@@ -110,7 +129,6 @@ class Xhgui_Profile
         }
         return $out;
     }
-
     /**
      * Get the profile run data.
      *
@@ -123,12 +141,10 @@ class Xhgui_Profile
     {
         return $this->_collapsed;
     }
-
     public function getId()
     {
         return $this->_data['_id'];
     }
-
     public function getDate()
     {
         $date = $this->getMeta('SERVER.REQUEST_TIME');
@@ -137,7 +153,6 @@ class Xhgui_Profile
         }
         return new DateTime('now');
     }
-
     /**
      * Get meta data about the profile. Read's a . split path
      * out of the meta data in a profile. For example `SERVER.REQUEST_TIME`
@@ -161,7 +176,6 @@ class Xhgui_Profile
         }
         return $data;
     }
-
     /**
      * Read data from the profile run.
      *
@@ -182,7 +196,6 @@ class Xhgui_Profile
         }
         return $this->_collapsed[$key][$metric];
     }
-
     /**
      * Find a function matching a watched function.
      *
@@ -208,7 +221,6 @@ class Xhgui_Profile
         }
         return $matches;
     }
-
     /**
      * Find the parent and children method/functions for a given
      * symbol.
@@ -228,7 +240,6 @@ class Xhgui_Profile
     public function getRelatives($symbol, $metric = null, $threshold = 0)
     {
         $parents = array();
-
         // If the function doesn't exist, it won't have parents/children
         if (empty($this->_collapsed[$symbol])) {
             return array(
@@ -239,12 +250,10 @@ class Xhgui_Profile
         }
         $current = $this->_collapsed[$symbol];
         $current['function'] = $symbol;
-
         $parents = $this->_getParents($symbol);
         $children = $this->_getChildren($symbol, $metric, $threshold);
         return array($parents, $current, $children);
     }
-
     /**
      * Get the parent methods for a given symbol.
      *
@@ -263,7 +272,6 @@ class Xhgui_Profile
         }
         return $parents;
     }
-
     /**
      * Find symbols that are the children of the given name.
      *
@@ -279,7 +287,6 @@ class Xhgui_Profile
         if (!isset($this->_indexed[$symbol])) {
             return $children;
         }
-
         $total = 0;
         if (isset($metric)) {
             $top = $this->_indexed[self::NO_PARENT];
@@ -287,7 +294,6 @@ class Xhgui_Profile
             $mainFunc = current($top);
             $total = $mainFunc[$metric];
         }
-
         foreach ($this->_indexed[$symbol] as $name => $data) {
             if (
                 $metric && $total > 0 && $threshold > 0 &&
@@ -299,7 +305,6 @@ class Xhgui_Profile
         }
         return $children;
     }
-
     /**
      * Extracts a single dimension of data
      * from a profile run.
@@ -326,7 +331,6 @@ class Xhgui_Profile
         }
         return $extract;
     }
-
     /**
      * Generate the approximate exclusive values for each metric.
      *
@@ -364,7 +368,6 @@ class Xhgui_Profile
             $data['epmu'] = $data['pmu'];
         }
         unset($data);
-
         // Go over each method and remove each childs metrics
         // from the parent.
         foreach ($this->_collapsed as $name => $data) {
@@ -379,7 +382,6 @@ class Xhgui_Profile
         }
         return $this;
     }
-
     /**
      * Sort data by a dimension.
      *
@@ -398,7 +400,6 @@ class Xhgui_Profile
         uasort($data, $sorter);
         return $data;
     }
-
     /**
      * Split a key name into the parent==>child format.
      *
@@ -414,7 +415,6 @@ class Xhgui_Profile
         }
         return array(null, $a[0]);
     }
-
     /**
      * Get the total number of tracked function calls in this run.
      *
@@ -432,7 +432,6 @@ class Xhgui_Profile
         $this->_functionCount = $total;
         return $this->_functionCount;
     }
-
     /**
      * Compare this run to another run.
      *
@@ -443,10 +442,8 @@ class Xhgui_Profile
     {
         $this->calculateSelf();
         $head->calculateSelf();
-
         $keys = array_merge($this->_keys, $this->_exclusiveKeys);
         $emptyData = array_fill_keys($keys, 0);
-
         $diffPercent = array();
         $diff = array();
         foreach ($this->_collapsed as $key => $baseData) {
@@ -456,15 +453,12 @@ class Xhgui_Profile
                 continue;
             }
             $diff[$key] = $this->_diffKeys($headData, $baseData);
-
             if ($key === 'main()') {
                 $diffPercent[$key] = $this->_diffPercentKeys($headData, $baseData);
             }
         }
-
         $diff['functionCount'] = $head->getFunctionCount() - $this->getFunctionCount();
         $diffPercent['functionCount'] = $head->getFunctionCount() / $this->getFunctionCount();
-
         return array(
             'base' => $this,
             'head' => $head,
@@ -472,7 +466,6 @@ class Xhgui_Profile
             'diffPercent' => $diffPercent,
         );
     }
-
     /**
      * Get the max value for any give metric.
      *
@@ -491,7 +484,6 @@ class Xhgui_Profile
             0
         );
     }
-
     /**
      * Return a structured array suitable for generating callgraph visualizations.
      *
@@ -507,14 +499,12 @@ class Xhgui_Profile
             throw new Exception("Unknown metric '$metric'. Cannot generate callgraph.");
         }
         $this->calculateSelf();
-
         // Non exclusive metrics are always main() because it is the root call scope.
         if (in_array($metric, $this->_exclusiveKeys)) {
             $main = $this->_maxValue($metric);
         } else {
             $main = $this->_collapsed['main()'][$metric];
         }
-
         $this->_visited = $this->_nodes = $this->_links = array();
         $this->_callgraphData(self::NO_PARENT, $main, $metric, $threshold);
         $out = array(
@@ -526,14 +516,12 @@ class Xhgui_Profile
         unset($this->_visited, $this->_nodes, $this->_links);
         return $out;
     }
-
     protected function _callgraphData($parentName, $main, $metric, $threshold, $parentIndex = null)
     {
         // Leaves don't have children, and don't have links/nodes to add.
         if (!isset($this->_indexed[$parentName])) {
             return;
         }
-
         $children = $this->_indexed[$parentName];
         foreach ($children as $childName => $metrics) {
             $metrics = $this->_collapsed[$childName];
@@ -541,13 +529,11 @@ class Xhgui_Profile
                 continue;
             }
             $revisit = false;
-
             // Keep track of which nodes we've visited and their position
             // in the node list.
             if (!isset($this->_visited[$childName])) {
                 $index = count($this->_nodes);
                 $this->_visited[$childName] = $index;
-
                 $this->_nodes[] = array(
                     'name' => $childName,
                     'callCount' => $metrics['ct'],
@@ -557,7 +543,6 @@ class Xhgui_Profile
                 $revisit = true;
                 $index = $this->_visited[$childName];
             }
-
             if ($parentIndex !== null) {
                 $this->_links[] = array(
                     'source' => $parentName,
@@ -565,7 +550,6 @@ class Xhgui_Profile
                     'callCount' => $metrics['ct'],
                 );
             }
-
             // If the current function has more children,
             // walk that call subgraph.
             if (isset($this->_indexed[$childName]) && !$revisit) {
@@ -573,15 +557,12 @@ class Xhgui_Profile
             }
         }
     }
-
     /**
      * Return a structured array suitable for generating flamegraph visualizations.
      *
-     * Functions whose inclusive time is less than $threshold of the total time will
+     * Functions whose inclusive time is less than 1% of the total time will
      * be excluded from the callgraph data.
      *
-     * @param string $metric The metric name to aggregate on.
-     * @param float $threshold The total % below which data should be elided.
      * @return array
      */
     public function getFlamegraph($metric = 'wt', $threshold = 0.01)
@@ -591,19 +572,16 @@ class Xhgui_Profile
             throw new Exception("Unknown metric '$metric'. Cannot generate flamegraph.");
         }
         $this->calculateSelf();
-
         // Non exclusive metrics are always main() because it is the root call scope.
         if (in_array($metric, $this->_exclusiveKeys)) {
             $main = $this->_maxValue($metric);
         } else {
             $main = $this->_collapsed['main()'][$metric];
         }
-
         $this->_visited = $this->_nodes = $this->_links = array();
         $flamegraph = $this->_flamegraphData(self::NO_PARENT, $main, $metric, $threshold);
         return array('data' => array_shift($flamegraph), 'sort' => $this->_visited);
     }
-
     protected function _flamegraphData($parentName, $main, $metric, $threshold, $parentIndex = null)
     {
         $result = array();
@@ -611,9 +589,9 @@ class Xhgui_Profile
         if (!isset($this->_indexed[$parentName])) {
             return $result;
         }
-
         $children = $this->_indexed[$parentName];
         foreach ($children as $childName => $metrics) {
+            $metrics = $this->_collapsed[$childName];
             if ($metrics[$metric] / $main <= $threshold) {
                 continue;
             }
@@ -622,7 +600,6 @@ class Xhgui_Profile
                 'value' => $metrics[$metric],
             );
             $revisit = false;
-
             // Keep track of which nodes we've visited and their position
             // in the node list.
             if (!isset($this->_visited[$childName])) {
@@ -633,7 +610,6 @@ class Xhgui_Profile
                 $revisit = true;
                 $index = $this->_visited[$childName];
             }
-
             // If the current function has more children,
             // walk that call subgraph.
             if (isset($this->_indexed[$childName]) && !$revisit) {
@@ -642,12 +618,10 @@ class Xhgui_Profile
                     $current['children'] = $grandChildren;
                 }
             }
-
             $result[] = $current;
         }
         return $result;
     }
-
     public function toArray()
     {
         return $this->_data;
