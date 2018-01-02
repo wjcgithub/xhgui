@@ -87,83 +87,90 @@ if (!isset($_SERVER['REQUEST_TIME_FLOAT'])) {
 }
 
 $options = Xhgui_Config::read('profiler.options');
+
+$profiler_on = false;
 if (extension_loaded('uprofiler')) {
     uprofiler_enable(UPROFILER_FLAGS_CPU | UPROFILER_FLAGS_MEMORY, $options);
+    $profiler_on = true;
 } else if (extension_loaded('tideways')) {
     tideways_enable(TIDEWAYS_FLAGS_CPU | TIDEWAYS_FLAGS_MEMORY | TIDEWAYS_FLAGS_NO_SPANS, $options);
+    $profiler_on = true;
 } else {
     if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 4) {
         xhprof_enable(XHPROF_FLAGS_CPU | XHPROF_FLAGS_MEMORY | XHPROF_FLAGS_NO_BUILTINS, $options);
     } else {
         xhprof_enable(XHPROF_FLAGS_CPU | XHPROF_FLAGS_MEMORY, $options);
     }
+    $profiler_on = true;
 }
 
 register_shutdown_function(
-    function () {
-        if (extension_loaded('uprofiler')) {
-            $data['profile'] = uprofiler_disable();
-        } else if (extension_loaded('tideways')) {
-            $data['profile'] = tideways_disable();
-        } else {
-            $data['profile'] = xhprof_disable();
-        }
+    function () use($profiler_on){
+        if($profiler_on){
 
-        // ignore_user_abort(true) allows your PHP script to continue executing, even if the user has terminated their request.
-        // Further Reading: http://blog.preinheimer.com/index.php?/archives/248-When-does-a-user-abort.html
-        // flush() asks PHP to send any data remaining in the output buffers. This is normally done when the script completes, but
-        // since we're delaying that a bit by dealing with the xhprof stuff, we'll do it now to avoid making the user wait.
-        ignore_user_abort(true);
-        flush();
+            if (extension_loaded('uprofiler')) {
+                $data['profile'] = uprofiler_disable();
+            } else if (extension_loaded('tideways')) {
+                $data['profile'] = tideways_disable();
+            } else {
+                $data['profile'] = xhprof_disable();
+            }
+            // ignore_user_abort(true) allows your PHP script to continue executing, even if the user has terminated their request.
+            // Further Reading: http://blog.preinheimer.com/index.php?/archives/248-When-does-a-user-abort.html
+            // flush() asks PHP to send any data remaining in the output buffers. This is normally done when the script completes, but
+            // since we're delaying that a bit by dealing with the xhprof stuff, we'll do it now to avoid making the user wait.
+            ignore_user_abort(true);
+            flush();
 
-        if (!defined('XHGUI_ROOT_DIR')) {
-            require dirname(dirname(__FILE__)) . '/src/bootstrap.php';
-        }
+            if (!defined('XHGUI_ROOT_DIR')) {
+                require dirname(dirname(__FILE__)) . '/src/bootstrap.php';
+            }
 
-        $uri = array_key_exists('REQUEST_URI', $_SERVER)
-            ? $_SERVER['REQUEST_URI']
-            : null;
-        if (empty($uri) && isset($_SERVER['argv'])) {
-            $cmd = basename($_SERVER['argv'][0]);
-            $uri = $cmd . ' ' . implode(' ', array_slice($_SERVER['argv'], 1));
-        }
+            $uri = array_key_exists('REQUEST_URI', $_SERVER)
+                ? $_SERVER['REQUEST_URI']
+                : null;
+            if (empty($uri) && isset($_SERVER['argv'])) {
+                $cmd = basename($_SERVER['argv'][0]);
+                $uri = $cmd . ' ' . implode(' ', array_slice($_SERVER['argv'], 1));
+            }
 
-        $time = array_key_exists('REQUEST_TIME', $_SERVER)
-            ? $_SERVER['REQUEST_TIME']
-            : time();
-        // In some cases there is comma instead of dot
-        $delimiter = (strpos($_SERVER['REQUEST_TIME_FLOAT'], ',') !== false) ? ',' : '.';
-        $requestTimeFloat = explode($delimiter, $_SERVER['REQUEST_TIME_FLOAT']);
-        if (!isset($requestTimeFloat[1])) {
-            $requestTimeFloat[1] = 0;
-        }
+            $time = array_key_exists('REQUEST_TIME', $_SERVER)
+                ? $_SERVER['REQUEST_TIME']
+                : time();
+            // In some cases there is comma instead of dot
+            $delimiter = (strpos($_SERVER['REQUEST_TIME_FLOAT'], ',') !== false) ? ',' : '.';
+            $requestTimeFloat = explode($delimiter, $_SERVER['REQUEST_TIME_FLOAT']);
+            if (!isset($requestTimeFloat[1])) {
+                $requestTimeFloat[1] = 0;
+            }
 
-        if (Xhgui_Config::read('save.handler') === 'file') {
-            $requestTs = array('sec' => $time, 'usec' => 0);
-            $requestTsMicro = array('sec' => $requestTimeFloat[0], 'usec' => $requestTimeFloat[1]);
-        } else {
-            $requestTs = new MongoDate($time);
-            $requestTsMicro = new MongoDate($requestTimeFloat[0], $requestTimeFloat[1]);
-        }
+            if (Xhgui_Config::read('save.handler') === 'file') {
+                $requestTs = array('sec' => $time, 'usec' => 0);
+                $requestTsMicro = array('sec' => $requestTimeFloat[0], 'usec' => $requestTimeFloat[1]);
+            } else {
+                $requestTs = new MongoDate($time);
+                $requestTsMicro = new MongoDate($requestTimeFloat[0], $requestTimeFloat[1]);
+            }
 
-        $data['meta'] = array(
-            'url' => $uri,
-            'SERVER' => $_SERVER,
-            'get' => $_GET,
-            'env' => $_ENV,
-            'simple_url' => Xhgui_Util::simpleUrl($uri),
-            'request_ts' => $requestTs,
-            'request_ts_micro' => $requestTsMicro,
-            'request_date' => date('Y-m-d', $time),
-        );
+            $data['meta'] = array(
+                'url' => $uri,
+                'SERVER' => $_SERVER,
+                'get' => $_GET,
+                'env' => $_ENV,
+                'simple_url' => Xhgui_Util::simpleUrl($uri),
+                'request_ts' => $requestTs,
+                'request_ts_micro' => $requestTsMicro,
+                'request_date' => date('Y-m-d', $time),
+            );
 
-        try {
-            $config = Xhgui_Config::all();
-            $config += array('db.options' => array());
-            $saver = Xhgui_Saver::factory($config);
-            $saver->save($data);
-        } catch (Exception $e) {
-            error_log('xhgui - ' . $e->getMessage());
+            try {
+                $config = Xhgui_Config::all();
+                $config += array('db.options' => array());
+                $saver = Xhgui_Saver::factory($config);
+                $saver->save($data);
+            } catch (Exception $e) {
+                error_log('xhgui - ' . $e->getMessage());
+            }
         }
     }
 );

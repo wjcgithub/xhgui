@@ -10,6 +10,7 @@
                 <th>
                   Method
                 </th>
+                <th>DOCUMENT_ROOT</th>
                 <th>URL</th>
                 <th>
                     {{ helpers.sort_link('Time', base_url, 'time', paging, search) }}
@@ -52,12 +53,15 @@
               </a>
             </td>
             <td>
+                {{result.meta('SERVER.DOCUMENT_ROOT')}}
+            </td>
+            <td>
                 {% set addr = result.meta.url %}
                 {{ helpers.tip_link(
                     addr,
                     50,
                     'url.view',
-                    {'url': result.meta.simple_url}
+                    {'url': result.meta.simple_url,'document_root': result.meta.SERVER.DOCUMENT_ROOT}
                 ) }}
             </td>
             <td>

@@ -13,7 +13,7 @@
 <div class="span3">
     <div class="sidebar-nav">
         <ul class="nav nav-list">
-            <li class="nav-header">This Run</li>
+            <li class="nav-header"><h3>This Run</h3></li>
             <li><strong>URL</strong> <a href="{{ url('url.view', {'url': result.meta('url')|simple_url }) }}">{{ result.meta('url') }}</a></li>
             <li><strong>Time</strong> {{ result.date|date(date_format) }}</li>
             <li><strong>ID</strong> <a href="{{ url('custom.help', {id: result.id|trim }) }}">{{ result.id }}</a></li>
@@ -22,13 +22,48 @@
             <li><strong>Memory Usage</strong> {{ result.get('main()', 'mu')|as_bytes }}</li>
             <li><strong>Peak Memory Usage</strong> {{ result.get('main()', 'pmu')|as_bytes }}</li>
 
-            <li class="nav-header">GET</li>
+            <li class="nav-header"><h3>GET</h3></li>
             <li>{{ helpers.property_list('GET', result.meta('get')) }}</li>
 
-            <li class="nav-header">SERVER</li>
-            <li>{{ helpers.property_list('SERVER', result.meta('SERVER')) }}
+            <li class="nav-header"><h3>SERVER</h3></li>
+            <dt>SERVER_NAME</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').SERVER_NAME }}</dd>
+            <dt>DOCUMENT_ROOT</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').DOCUMENT_ROOT }}</dd>
+            <dt>SERVER_ADDR</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').SERVER_ADDR }}</dd>
+            <dt>SERVER_PORT</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').SERVER_PORT }}</dd>
+            <dt>USER</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').USER }}</dd>
+            <dt>SCRIPT_FILENAME</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').SCRIPT_FILENAME }}</dd>
+            <dt>QUERY_STRING</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').QUERY_STRING }}</dd>
+            <dt>REQUEST_METHOD</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').REQUEST_METHOD }}</dd>
+            <dt>CONTENT_TYPE</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').CONTENT_TYPE }}</dd>
+            <dt>REQUEST_URI</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').REQUEST_URI }}</dd>
+            <dt>DOCUMENT_URI</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').DOCUMENT_URI }}</dd>
+            <dt>SERVER_PROTOCOL</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').SERVER_PROTOCOL }}</dd>
+            <dt>SERVER_SOFTWARE</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').SERVER_SOFTWARE }}</dd>
+            <dt>REMOTE_ADDR</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').REMOTE_ADDR }}</dd>
+            <dt>REMOTE_PORT</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').REMOTE_PORT }}</dd>
+            <dt>REDIRECT_STATUS</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').REDIRECT_STATUS }}</dd>
+            <dt>HTTP_HOST</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').HTTP_HOST }}</dd>
+            <dt>HTTP_CONNECTION</dt>
+            <dd class="text-wrap">{{ result.meta('SERVER').HTTP_CONNECTION }}</dd>
 
-            <li class="nav-header">Waterfall</li>
+            <li class="nav-header"><h3>Waterfall</h3></li>
             <li><strong>By IP</strong> <a href="{{ url('waterfall.list', {'remote_addr': result.meta.SERVER.REMOTE_ADDR, 'request_start': result.meta.SERVER.REQUEST_TIME - 5, 'request_end': result.meta.SERVER.REQUEST_TIME + 15}) }}">{{ result.meta.SERVER.REMOTE_ADDR }}</a></li>
 
         </ul>

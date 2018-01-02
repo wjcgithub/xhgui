@@ -107,7 +107,7 @@ class Xhgui_Controller_Run extends Xhgui_Controller
         );
 
         $search = array();
-        $keys = array('date_start', 'date_end', 'limit', 'limit_custom');
+        $keys = array('date_start', 'date_end', 'limit', 'limit_custom', 'document_root');
         foreach ($keys as $key) {
             $search[$key] = $request->get($key);
         }
@@ -315,7 +315,8 @@ class Xhgui_Controller_Run extends Xhgui_Controller
         $result = [];
         $request = $this->_app->request();
         $response = $this->_app->response();
-        if (isset($_SESSION['domains']) && rand(1,5)==2){
+//        && rand(1,5)==2
+        if (isset($_SESSION['domains'])){
             $result = json_decode($_SESSION['domains']);
         }else{
             $data = $this->_profiles->groupByDomain();
