@@ -23,7 +23,12 @@
 	<div class="control-group span4">
 		<input type="text" class="form-control" id="term">
 		<button class="btn btn-primary" id="flamegraph-search">Search</button>
-		<button class="btn" id="flamegraph-clear">Clear</button>
+        <button class="btn" id="flamegraph-clear">Clear</button>
+        {% if threshold!=-1 %}
+            <button class="btn" id="flamegraph-all">看所有的</button>
+        {% else %}
+            <button class="btn" id="flamegraph-threshold">只看大于1%的数据</button>
+        {% endif %}
 	</div>
 </form>
 </div>
@@ -65,8 +70,7 @@ var tip = d3.tip()
     });
 
 flameGraph.tooltip(tip);
-
-d3.json("{{ url('run.flamegraph.data', {id: profile.id|trim}) }}", function(error, data) {
+d3.json("{% autoescape false %}{{ get_data_url }}{% endautoescape %}", function(error, data) {
     if (error) {
         return console.warn(error);
     }
@@ -85,6 +89,14 @@ $(document).ready(function(){
     $("form").submit(function(event){
         event.preventDefault();
         flameGraph.search($('#term').val());
+    });
+
+    $('#flamegraph-all').on('click', function (e){
+        window.location.href=getCurUrl(-1);
+    });
+
+    $('#flamegraph-threshold').on('click', function (e){
+        window.location.href=getCurUrl(0.01);
     });
 });
 
@@ -112,6 +124,48 @@ function getDepth (obj) {
         })
     }
     return 1 + depth
+}
+
+function getCurUrl(threshold){
+    var returnUrl='';
+    var url = window.location.href;
+    var nurl = parseURL(url);
+    if(threshold<0){
+        returnUrl = nurl.path+'?'+'id='+nurl.params.id+"&threshold=-1";
+    } else {
+        returnUrl = nurl.path+'?'+'id='+nurl.params.id;
+    }
+    return returnUrl;
+}
+
+function parseURL(url) {
+    var a = document.createElement('a');
+    a.href = url;
+    return {
+        source: url,
+        protocol: a.protocol.replace(':', ''),
+        host: a.hostname,
+        port: a.port,
+        query: a.search,
+        params: (function () {
+            var ret = {},
+                    seg = a.search.replace(/^\?/, '').split('&'),
+                    len = seg.length, i = 0, s;
+            for (; i < len; i++) {
+                if (!seg[i]) {
+                    continue;
+                }
+                s = seg[i].split('=');
+                ret[s[0]] = s[1];
+            }
+            return ret;
+        })(),
+        file: (a.pathname.match(/\/([^\/?#]+)$/i) || [, ''])[1],
+        hash: a.hash.replace('#', ''),
+        path: a.pathname.replace(/^([^\/])/, '/$1'),
+        relative: (a.href.match(/tps?:\/\/[^\/]+(.+)/) || [, ''])[1],
+        segments: a.pathname.replace(/^\//, '').split('/')
+    };
 }
 
 </script>

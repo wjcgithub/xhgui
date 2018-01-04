@@ -14,7 +14,7 @@
     <div class="sidebar-nav">
         <ul class="nav nav-list">
             <li class="nav-header"><h3>This Run</h3></li>
-            <li><strong>URL</strong> <a href="{{ url('url.view', {'url': result.meta('url')|simple_url }) }}">{{ result.meta('url') }}</a></li>
+            <li><strong>URL</strong> <a style="    word-wrap: break-word; word-break: normal;" href="{{ url('url.view', {'url': result.meta('url')|simple_url }) }}">{{ result.meta('url') }}</a></li>
             <li><strong>Time</strong> {{ result.date|date(date_format) }}</li>
             <li><strong>ID</strong> <a href="{{ url('custom.help', {id: result.id|trim }) }}">{{ result.id }}</a></li>
             <li><strong>Wall Time</strong> {{ result.get('main()', 'wt')|as_time }}</li>
@@ -26,9 +26,9 @@
             <li>{{ helpers.property_list('GET', result.meta('get')) }}</li>
 
             <li class="nav-header"><h3>SERVER</h3></li>
-            <dt>SERVER_NAME</dt>
+            <dt style="color: red;">SERVER_NAME</dt>
             <dd class="text-wrap">{{ result.meta('SERVER').SERVER_NAME }}</dd>
-            <dt>DOCUMENT_ROOT</dt>
+            <dt style="color: red;">DOCUMENT_ROOT</dt>
             <dd class="text-wrap">{{ result.meta('SERVER').DOCUMENT_ROOT }}</dd>
             <dt>SERVER_ADDR</dt>
             <dd class="text-wrap">{{ result.meta('SERVER').SERVER_ADDR }}</dd>

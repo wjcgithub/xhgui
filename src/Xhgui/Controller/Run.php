@@ -276,11 +276,14 @@ class Xhgui_Controller_Run extends Xhgui_Controller
     {
         $request = $this->_app->request();
         $profile = $this->_profiles->get($request->get('id'));
-
+        $threshold = $request->get('threshold');
         $this->_template = 'runs/flamegraph.twig';
+        $get_data_url = $this->_app->urlFor('run.flamegraph.data').'?'.http_build_query(['id'=>trim($profile->getId()), 'threshold'=>$threshold]);
         $this->set(array(
             'profile' => $profile,
             'date_format' => $this->_app->config('date.format'),
+            'get_data_url' => $get_data_url,
+            'threshold' => $threshold
         ));
     }
 
