@@ -277,8 +277,15 @@ class Xhgui_Controller_Run extends Xhgui_Controller
         $request = $this->_app->request();
         $profile = $this->_profiles->get($request->get('id'));
         $threshold = $request->get('threshold');
+        $metric = $request->get('metric');
         $this->_template = 'runs/flamegraph.twig';
-        $get_data_url = $this->_app->urlFor('run.flamegraph.data').'?'.http_build_query(['id'=>trim($profile->getId()), 'threshold'=>$threshold]);
+        $get_data_url = $this->_app->urlFor('run.flamegraph.data') . '?' . http_build_query(
+                [
+                    'id' => trim($profile->getId()),
+                    'threshold' => $threshold,
+                    'metric' => $metric
+                ]
+            );
         $this->set(array(
             'profile' => $profile,
             'date_format' => $this->_app->config('date.format'),
@@ -319,12 +326,12 @@ class Xhgui_Controller_Run extends Xhgui_Controller
         $request = $this->_app->request();
         $response = $this->_app->response();
 //        && rand(1,5)==2
-        if (isset($_SESSION['domains'])){
+        if (isset($_SESSION['domains'])) {
             $result = json_decode($_SESSION['domains']);
-        }else{
+        } else {
             $data = $this->_profiles->groupByDomain();
-            if($data['ok']==1){
-                foreach ($data['result'] as $key=>$value){
+            if ($data['ok'] == 1) {
+                foreach ($data['result'] as $key => $value) {
                     $result[] = $value['_id'];
                 }
             }
@@ -333,6 +340,7 @@ class Xhgui_Controller_Run extends Xhgui_Controller
         }
 
         $response['Content-Type'] = 'application/json';
-        echo $response->body(json_encode($result)); die;
+        echo $response->body(json_encode($result));
+        die;
     }
 }
